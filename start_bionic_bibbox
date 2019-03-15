@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Purpose: To run docker in privileged mode 
+#     - both to allow systemd to run 
+#     - and to allow creation of docker containers within the container
+# Of course, you should never run systemd in a Docker container,
+#     but I am using the container to test a build that is dependent on systemd. ;)
+# Reference: https://developers.redhat.com/blog/2014/05/05/running-systemd-within-docker-container/
+# Not used here, but noteworthy: https://developers.redhat.com/blog/2016/09/13/running-systemd-in-a-non-privileged-container/
+
+# get source directory - reference: https://stackoverflow.com/a/246128
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # resolve relative symlinks
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+pushd $DIR
+
+# initialize two directories that are to be shared as volumes with the running container
+if [ ! -d volumes/opt ]; then 
+  mkdir -p volumes/opt
+fi
+if [ ! -f volumes/opt/get_vilas ]; then 
+  rsync -r seed/opt/ volumes/opt/
+fi
+if [ ! -d volumes/etc/apache2 ]; then
+  mkdir -p volumes/etc/apache2
+fi
+if [ ! -f volumes/etc/apache2/apache2.conf ]; then 
+  rsync -rl seed/etc/apache2/ volumes/etc/apache2/
+fi
+
+# start docker (per running-systemd-within-docker-container)
+#   -d                                       -- run as a daemon
+#   --privileged                             -- needed to run systemd and to run docker-in-docker
+#   --rm                                     -- delete stopped container
+#   --name bibbox_vilas                      -- (optional) constrain on name of running container
+#   -v /sys/fs/cgroup:/sys/fs/cgroup:ro      -- mount /sys/fs/cgroup read-only to give proper access to systemd
+#   -v $DIR/volumes/etc/apache2/sites-available:/etc/apache2/sites-available -- mount ./volume/etc/apache2/sites-available as /etc/apache2/sites-available
+#   -v $DIR/volumes/etc/apache2/sites-enabled:/etc/apache2/sites-enabled -- mount ./volume/etc/apache2/sites-enabled as /etc/apache2/sites-enabled
+#   -v $DIR/volumes/opt:/opt                 -- mount ./volume/opt as /opt so that installed base will persist between runs
+#   bionic_bibbox                            -- name of docker image to run
+docker run -d \
+  --privileged \
+  --rm \
+  --name bibbox_vilas \
+  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+  -v $DIR/volumes/etc/apache2/sites-available:/etc/apache2/sites-available \
+  -v $DIR/volumes/etc/apache2/sites-enabled:/etc/apache2/sites-enabled \
+  -v $DIR/volumes/opt:/opt \
+  bionic_bibbox

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Purpose: To run docker in privileged mode 
+#     - both to allow systemd to run 
+#     - and to allow creation of docker containers within the container
+# Of course, you should never run systemd in a Docker container,
+#     but I am using the container to test a build that is dependent on systemd. ;)
+# Reference: https://developers.redhat.com/blog/2014/05/05/running-systemd-within-docker-container/
+# Not used here, but noteworthy: https://developers.redhat.com/blog/2016/09/13/running-systemd-in-a-non-privileged-container/
+
+# get source directory - reference: https://stackoverflow.com/a/246128
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # resolve relative symlinks
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+pushd $DIR/build
+
+docker build -t bionic_bibbox .
+
+popd
