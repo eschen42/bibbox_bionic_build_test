@@ -2,4 +2,3 @@
 git clone https://github.com/eschen42/kit-eb3kit.git bibbox-install
 cd bibbox-install
 git checkout vilas
-chmod u+x *.sh
