@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 MAINTAINER Arthur C. Eschenlauer, esch0041@umn.edu
 RUN apt-get -y update
 RUN apt-get -y upgrade
@@ -10,8 +10,11 @@ RUN apt-get -y install vim-nox
 RUN apt-get -y install wget
 RUN apt-get -y install unzip
 # set locale to eu_US.UTF-8 as needed for bibbox installation
-ENV DEBIAN_FRONTEND=noninteractive LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-RUN apt-get install --no-install-recommends -y locales && locale-gen en_US.UTF-8 && dpkg-reconfigure locales
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get install --no-install-recommends -y locales && locale-gen && dpkg-reconfigure locales
+RUN echo 'LANG="en_US.UTF-8"'>/etc/profile.d/locale_en_US
+RUN echo 'LANGUAGE="en_US:en"'>>/etc/profile.d/locale_en_US
+RUN echo 'export LC_ALL=en_US.UTF-8'>>/etc/profile.d/locale_en_US
 # install sudo, gnupg
 RUN apt-get -y install sudo
 RUN apt-get -y install gnupg
@@ -30,11 +33,14 @@ RUN apt-get -y install lsb-release
 RUN apt-get -y install apache2
 # speed up bibbox-install/install-pyhthon-and-tools.sh
 RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 7F438280EF8D349F
-RUN apt-get update
+RUN apt-get -y update
 RUN apt-get install -y inotify-tools
 RUN apt-get install -y python3-pip
-# speed up bibbox-install/bootstrap-puppet-agent.sh
-RUN apt-get install -y puppetmaster
+# ensure en_US.UTF-8 locale
+RUN grep '^en_US.UTF-8 UTF-8' /etc/locale.gen || (echo 'en_US.UTF-8 UTF-8'>>/etc/locale.gen && locale-gen)
+ENV LC_ALL="en_US.UTF-8" LANG="en_US.UTF-8" LANGUAGE="en_US:en"
+# ensure we are up-to-date - probably unnecessary
+RUN apt-get -y upgrade
 ## preserve this file for future reference
 ADD Dockerfile /Dockerfile
 
